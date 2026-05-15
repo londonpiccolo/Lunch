@@ -1,24 +1,32 @@
+では、別の方法でいきましょう。コードを直接コピーしてファイルを作る方法です。
+
+---
+
+## 手順
+
+1. 下のコードを**全選択してコピー**（コードの右上にコピーボタンがあります）
+2. PCの**メモ帳**（Windowsの場合）を開く
+3. コピーしたものを**貼り付け**
+4. 「名前を付けて保存」→ファイル名を `index.html`、文字コードを `UTF-8` にして保存
+
+---
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ランチ出欠表</title>
-
-  <!-- PWA設定 -->
   <meta name="theme-color" content="#ff7a3d" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="ランチ出欠表" />
-
-  <!-- アイコン（SVG inline） -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff7a3d'/><text y='72' x='50' text-anchor='middle' font-size='60'>🍱</text></svg>" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff7a3d'/><text y='72' x='50' text-anchor='middle' font-size='60'>🍱</text></svg>" />
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       min-height: 100vh;
       background: linear-gradient(135deg, #fff8f0 0%, #ffeedd 100%);
@@ -28,7 +36,6 @@
       align-items: center;
       padding: 32px 16px 64px;
     }
-
     .title {
       background: #ff7a3d;
       color: white;
@@ -43,13 +50,11 @@
       align-items: center;
       gap: 10px;
     }
-
     .summary {
       display: flex;
       gap: 16px;
       margin-bottom: 24px;
     }
-
     .summary-card {
       border-radius: 12px;
       padding: 12px 20px;
@@ -57,10 +62,8 @@
       min-width: 80px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     }
-
     .summary-count { font-size: 22px; font-weight: bold; }
     .summary-label { font-size: 12px; color: #666; margin-top: 2px; }
-
     .list {
       background: white;
       border-radius: 18px;
@@ -69,7 +72,6 @@
       width: 100%;
       max-width: 380px;
     }
-
     .member-row {
       display: flex;
       align-items: center;
@@ -81,32 +83,22 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-
     .member-row:last-child { border-bottom: none; }
     .member-row:active { background: #fff3ec; }
-
-    .member-name {
-      font-size: 17px;
-      font-weight: 500;
-      color: #333;
-    }
-
+    .member-name { font-size: 17px; font-weight: 500; color: #333; }
     .status-badge {
       font-size: 22px;
       min-width: 40px;
       text-align: center;
       transition: transform 0.1s;
     }
-
     .member-row:active .status-badge { transform: scale(0.85); }
-
     .hint {
       margin-top: 18px;
       font-size: 12px;
       color: #aaa;
       text-align: center;
     }
-
     .reset-btn {
       margin-top: 24px;
       background: white;
@@ -120,10 +112,8 @@
       transition: all 0.15s;
       font-family: inherit;
     }
-
     .reset-btn:hover { background: #fff3ec; }
     .reset-btn:active { background: #ff7a3d; color: white; }
-
     .saved-notice {
       margin-top: 12px;
       font-size: 11px;
@@ -136,9 +126,7 @@
   </style>
 </head>
 <body>
-
 <div class="title">🍱 ランチ出欠表</div>
-
 <div class="summary">
   <div class="summary-card" style="background:#e8f5e9;">
     <div class="summary-count" style="color:#4CAF50;" id="count-o">0</div>
@@ -153,69 +141,53 @@
     <div class="summary-label">－ 未回答</div>
   </div>
 </div>
-
 <div class="list" id="member-list"></div>
-
 <p class="hint">✏️ 名前をタップすると「◯ → ☓ → 未回答」と切り替わります</p>
 <button class="reset-btn" id="reset-btn">🔄 出欠リセット</button>
 <div class="saved-notice" id="saved-notice">💾 保存しました</div>
-
 <script>
-  // ── 初期メンバーリスト ──────────────────────────
-  const DEFAULT_MEMBERS = [
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      for (let reg of registrations) { reg.unregister(); }
+    });
+  }
+  const MEMBERS = [
     "愛美", "岩男", "すみれ", "守屋", "なつ",
     "斎藤", "かこ", "谷", "飯尾", "美奈",
     "いづみ", "好美", "影山"
   ];
-
-  const STORAGE_KEY = "lunch-statuses";
+  const STORAGE_KEY = "lunch-statuses-v2";
   const CYCLE = [null, "◯", "☓"];
-
-  // ── localStorage 読み込み ──────────────────────
   function loadStatuses() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved ? JSON.parse(saved) : {};
     } catch(e) { return {}; }
   }
-
-  // ── localStorage 保存 ────────────────────────
   function saveStatuses(statuses) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(statuses));
-    } catch(e) {}
-    // 保存通知を表示
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(statuses)); } catch(e) {}
     const notice = document.getElementById("saved-notice");
     notice.classList.add("show");
     clearTimeout(notice._timer);
     notice._timer = setTimeout(() => notice.classList.remove("show"), 1800);
   }
-
   let statuses = loadStatuses();
-
-  // ── DOM 描画 ─────────────────────────────────
   function render() {
     const list = document.getElementById("member-list");
     list.innerHTML = "";
-
-    let countO = 0, countX = 0, countP = 0;
-
-    DEFAULT_MEMBERS.forEach(name => {
+    let cO = 0, cX = 0, cP = 0;
+    MEMBERS.forEach(name => {
       const s = statuses[name] ?? null;
-      if (s === "◯") countO++;
-      else if (s === "☓") countX++;
-      else countP++;
-
+      if (s === "◯") cO++;
+      else if (s === "☓") cX++;
+      else cP++;
       const row = document.createElement("div");
       row.className = "member-row";
-
       const nameEl = document.createElement("span");
       nameEl.className = "member-name";
       nameEl.textContent = name;
-
       const badge = document.createElement("span");
       badge.className = "status-badge";
-
       if (s === "◯") {
         badge.textContent = "◯";
         badge.style.color = "#4CAF50";
@@ -228,32 +200,22 @@
         badge.textContent = "－";
         badge.style.color = "#bbb";
       }
-
       row.appendChild(nameEl);
       row.appendChild(badge);
-
       row.addEventListener("click", () => {
         const cur = statuses[name] ?? null;
-        const idx = CYCLE.indexOf(cur);
-        const next = CYCLE[(idx + 1) % CYCLE.length];
-        if (next === null) {
-          delete statuses[name];
-        } else {
-          statuses[name] = next;
-        }
+        const next = CYCLE[(CYCLE.indexOf(cur) + 1) % CYCLE.length];
+        if (next === null) delete statuses[name];
+        else statuses[name] = next;
         saveStatuses(statuses);
         render();
       });
-
       list.appendChild(row);
     });
-
-    document.getElementById("count-o").textContent = countO;
-    document.getElementById("count-x").textContent = countX;
-    document.getElementById("count-pending").textContent = countP;
+    document.getElementById("count-o").textContent = cO;
+    document.getElementById("count-x").textContent = cX;
+    document.getElementById("count-pending").textContent = cP;
   }
-
-  // ── リセット ─────────────────────────────────
   document.getElementById("reset-btn").addEventListener("click", () => {
     if (confirm("出欠をリセットしますか？")) {
       statuses = {};
@@ -261,13 +223,7 @@
       render();
     }
   });
-
   render();
-
-  // ── Service Worker 登録（PWA用） ──────────────
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  }
 </script>
 </body>
 </html>
